@@ -7,8 +7,9 @@ on:
 
 jobs:
   build:
-    name: Build APK
-    runs-on: ubuntu-latest
+      - name: Build APK (release)
+        run: flutter build apk --release --no-shrink --android-skip-build-dependency-validation
+
 
     steps:
       - name: Checkout repository
