@@ -26,6 +26,11 @@ jobs:
           channel: 'stable'
           cache: false
 
+      - name: Create complete .env file from secret
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > .env
+          echo "✅ Complete .env file created with all keys!"
+
       - name: Override google-services.json from secret (if set)
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
@@ -53,8 +58,8 @@ jobs:
       - name: Clean Build Cache
         run: flutter clean
 
-      - name: Build APK (release)
-        run: flutter build apk --release --no-shrink --android-skip-build-dependency-validation --no-tree-shake-icons
+      - name: Build APK (release without obfuscation)
+        run: flutter build apk --release --no-obfuscate --no-shrink --android-skip-build-dependency-validation --no-tree-shake-icons
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
