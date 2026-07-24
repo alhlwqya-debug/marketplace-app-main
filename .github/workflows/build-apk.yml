@@ -7,9 +7,8 @@ on:
 
 jobs:
   build:
-      - name: Build APK (release)
-        run: flutter build apk --release --no-shrink --android-skip-build-dependency-validation
-
+    name: Build APK
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -25,9 +24,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: false # قمنا بإلغاء الكاش هنا لإجباره على التحديث
-
-
+          cache: false
 
       - name: Override google-services.json from secret (if set)
         run: |
@@ -53,11 +50,11 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Analyze code (non-fatal)
-        run: flutter analyze --no-fatal-infos || true
+      - name: Clean Build Cache
+        run: flutter clean
 
       - name: Build APK (release)
-        run: flutter build apk --release --no-shrink
+        run: flutter build apk --release --no-shrink --android-skip-build-dependency-validation --no-tree-shake-icons
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -69,6 +66,11 @@ jobs:
       - name: Show APK info
         run: |
           APK=build/app/outputs/flutter-apk/app-release.apk
-          echo "✅ APK built successfully!"
-          ls -lh "$APK"
-          echo "Size: $(du -sh "$APK" | cut -f1)"
+          if [ -f "$APK" ]; then
+            echo "✅ APK built successfully!"
+            ls -lh "$APK"
+            echo "Size: $(du -sh "$APK" | cut -f1)"
+          else
+            echo "❌ APK file not found!"
+            exit 1
+          fi
