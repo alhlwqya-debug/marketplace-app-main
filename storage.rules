@@ -1,0 +1,64 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Helper ──────────────────────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isUnderSizeLimit(maxMB) {
+      return request.resource.size < maxMB * 1024 * 1024;
+    }
+
+    // ─── User Avatars ─────────────────────────────────────────────────────────
+    match /users/{userId}/avatar/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImage() && isUnderSizeLimit(5);
+    }
+
+    // ─── Store Assets ─────────────────────────────────────────────────────────
+    match /stores/{storeId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() &&
+        isImage() &&
+        isUnderSizeLimit(10) &&
+        firestore.get(/databases/(default)/documents/stores/$(storeId)).data.ownerId == request.auth.uid;
+    }
+
+    // ─── Product Images ───────────────────────────────────────────────────────
+    match /products/{storeId}/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() &&
+        isImage() &&
+        isUnderSizeLimit(10) &&
+        firestore.get(/databases/(default)/documents/stores/$(storeId)).data.ownerId == request.auth.uid;
+    }
+
+    // ─── Review Images ────────────────────────────────────────────────────────
+    match /reviews/{reviewId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnderSizeLimit(5);
+    }
+
+    // ─── Order Attachments (e.g. receipts) ────────────────────────────────────
+    match /orders/{orderId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isUnderSizeLimit(20);
+    }
+
+    // ─── Onboarding / Public Assets ───────────────────────────────────────────
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Admin only via Firebase console
+    }
+  }
+}
